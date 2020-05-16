@@ -13,13 +13,13 @@ import timber.log.Timber
 
 object NotificationsManager {
 
-    private const val NOTIFICATION_MESSAGE_CHANNEL_ID = "Coach message"
+    private var notificationChannelID = "default.app.channel.id"
     private const val INITIAL_START_HOUR_24_FORMAT = 19
 
     fun createNotification(ctx: Context, title: String, message: String, iconResID: Int, pendingIntent: PendingIntent) {
         Timber.i("Creating notification...")
 
-        val builder = NotificationCompat.Builder(ctx, NOTIFICATION_MESSAGE_CHANNEL_ID)
+        val builder = NotificationCompat.Builder(ctx, notificationChannelID)
             .setContentTitle(title)
             .setContentText(message)
             .setSmallIcon(iconResID)
@@ -32,12 +32,13 @@ object NotificationsManager {
         }
     }
 
-    fun createNotificationChannel(ctx: Context, titleResID: Int, descriptionResID: Int) {
+    fun createNotificationChannel(ctx: Context, titleResID: Int, descriptionResID: Int, channelID: String) {
+        notificationChannelID = channelID
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = ctx.getString(titleResID)
             val descriptionText = ctx.getString(descriptionResID)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(NOTIFICATION_MESSAGE_CHANNEL_ID, name, importance).apply {
+            val channel = NotificationChannel(notificationChannelID, name, importance).apply {
                 description = descriptionText
             }
             val notificationManager: NotificationManager =
@@ -46,17 +47,11 @@ object NotificationsManager {
         }
     }
 
-    private fun startRecurringNotifications(ctx: Context, workerRequest: WorkRequest, startHour: Int = INITIAL_START_HOUR_24_FORMAT) {
+    private fun startRecurringNotifications(ctx: Context, workerRequest: PeriodicWorkRequest, startHour: Int = INITIAL_START_HOUR_24_FORMAT) {
         var hoursDelay = DateTimeUtils.getCurrentHoursDifference(startHour)
         if (hoursDelay <= 0) hoursDelay = 1
-        WorkManager.getInstance(ctx).enqueue(workerRequest)
+        WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(workerRequest.id.toString(), ExistingPeriodicWorkPolicy.KEEP, workerRequest)
         Timber.i("Started notification worker with delay:$hoursDelay")
-    }
-
-    fun resetNotificationWorker(ctx: Context, workerRequest: WorkRequest, tag: String, startHour: Int = INITIAL_START_HOUR_24_FORMAT) {
-        Timber.i("Restarting notification worker")
-        WorkManager.getInstance(ctx).cancelAllWorkByTag(tag)
-        startRecurringNotifications(ctx, workerRequest, startHour)
     }
 
     data class NotificationMessage(val title: String, val message: String, val iconResID: Int, val pendingIntent: PendingIntent)
