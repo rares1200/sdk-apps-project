@@ -47,7 +47,7 @@ object NotificationsManager {
         }
     }
 
-    private fun startRecurringNotifications(ctx: Context, workerRequest: PeriodicWorkRequest, startHour: Int = INITIAL_START_HOUR_24_FORMAT) {
+    fun startRecurringNotifications(ctx: Context, workerRequest: PeriodicWorkRequest, startHour: Int = INITIAL_START_HOUR_24_FORMAT) {
         var hoursDelay = DateTimeUtils.getCurrentHoursDifference(startHour)
         if (hoursDelay <= 0) hoursDelay = 1
         WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(workerRequest.id.toString(), ExistingPeriodicWorkPolicy.KEEP, workerRequest)
